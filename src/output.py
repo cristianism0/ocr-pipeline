@@ -17,11 +17,18 @@ def json_from_pdf(file_path: str, output_path: str, pages: list[dict] , ensure_a
 
 def json_from_image(file_path: str, output_path: str, text: str, mean_confidence: float, low_confidence_words: list, ensure_ascii: bool = False):
     """
-    Direct image
+    image: returns a JSON file in path with:
+        - filename
+        - text
+        - mean_confidence
+        - list of low_confidence_words)
     """
     filename = Path(file_path).name
+    extension = Path(file_path).suffix
+    
     template = {
         "filename": filename,
+        "filetype": extension,
         "text": text,
         "mean_confidence": mean_confidence,
         "low_confidence_words": low_confidence_words
