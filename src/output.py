@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-def json_from_pdf(file_path: str, output_path: str, pages: list[dict] , ensure_ascii: bool = False):
+def json_from_pdf(file_path: Path, output_path: Path, pages: list[dict] , ensure_ascii: bool = False):
     """
     pages: list of dicts with page, text, mean_confidence, low_confidence_words
     """
@@ -15,7 +15,7 @@ def json_from_pdf(file_path: str, output_path: str, pages: list[dict] , ensure_a
         json.dump(template, f, indent=4, ensure_ascii=ensure_ascii)
 
 
-def json_from_image(file_path: str, output_path: str, text: str, mean_confidence: float, low_confidence_words: list, ensure_ascii: bool = False):
+def json_from_image(file_path: Path, output_path: Path, text: str, mean_confidence: float, low_confidence_words: list, ensure_ascii: bool = False):
     """
     image: returns a JSON file in path with:
         - filename

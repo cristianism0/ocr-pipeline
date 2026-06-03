@@ -1,15 +1,20 @@
 import pytesseract
-from PIL import Image
+from pathlib import Path
+import PIL
 import csv
 import io
 import numpy as np
 
 pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"
     
-def page_conf_text(file_path: str, min_word_conf: float = 60.00) -> tuple[list[dict[float,str]], list[dict[float,str]]]:
-    data = pytesseract.image_to_data(Image.open(file_path))
+def page_conf_text(file_path: Path, min_word_conf: float = 60.00) -> tuple[list[dict[float,str]], list[dict[float,str]]]:
+    """
+    Collect the text and word's confidence and return.
+    """
+    
+    data = pytesseract.image_to_data(PIL.Image.open(file_path))
     reader = csv.DictReader(io.StringIO(data.replace('\t', ',').strip()))
-
+        
     ret = []
     word_conf = []
     for line in reader:
@@ -24,11 +29,11 @@ def page_conf_text(file_path: str, min_word_conf: float = 60.00) -> tuple[list[d
                 
     return ret, word_conf
     
-def page_text(file_path: str):
+def page_text(file_path: Path):
     """
     Get the text from a image using Tesseract.
     """    
-    data = pytesseract.image_to_string(Image.open(file_path))
+    data = pytesseract.image_to_string(PIL.Image.open(file_path))
     return data
 
 def mean_conf(values: list):
