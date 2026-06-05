@@ -1,8 +1,15 @@
+import logging
 from datetime import datetime
 from pathlib import Path
+
 import pymupdf
 
-def pdf2img(file_path: Path, output_dir: Path, ext: str = "jpeg", dpi: int = 300) -> list[Path]:
+logger = logging.getLogger(__name__)
+
+
+def pdf2img(
+    file_path: Path, output_dir: Path, ext: str = "jpeg", dpi: int = 300
+) -> list[Path]:
     """
     Transform each line of a PDF into a image and return all images path:
     Image extensions: jpeg (default), tiff, png
@@ -15,9 +22,11 @@ def pdf2img(file_path: Path, output_dir: Path, ext: str = "jpeg", dpi: int = 300
         pix = page.get_pixmap(dpi=dpi)
         out = Path(output_dir) / f"{fname}_page-{page.number}.{ext}"
         pix.pil_save(out, format=ext, dpi=(dpi, dpi), quality=100)
+        logger.info(f"image saved from {fname} with dpi={dpi} at {out}")
         paths.append(out)
 
     return paths
+
 
 def get_ext(file_path: Path) -> tuple[Path, str]:
     """
@@ -26,6 +35,7 @@ def get_ext(file_path: Path) -> tuple[Path, str]:
     file = Path(file_path)
     # tesseract can read file with no extension
     return file, file.suffix.lower()
+
 
 def path_collector(input_path: Path, recursive: bool) -> list[Path]:
     """
@@ -37,11 +47,15 @@ def path_collector(input_path: Path, recursive: bool) -> list[Path]:
         return []
 
     pattern = "**/*" if recursive else "*"
+    logger.warning(
+        f"pattern glob select {"'**/*' (recursive)" if recursive else "'*' (non-recursive)"}"
+    )
     return [f for f in in_path.glob(pattern) if f.is_file()]
+
 
 def dir_creator(output_path: str) -> tuple[str, str]:
     """
-    Create the orc-pipe/input and ocr-pipe/output directories in path.
+    Create the ocr-pipe/input and ocr-pipe/output directories in path.
     """
     o_path = Path(output_path)
     parnt = o_path.parent
@@ -52,10 +66,15 @@ def dir_creator(output_path: str) -> tuple[str, str]:
         base = parnt / "ocr-pipe"
     (base / "input").mkdir(parents=True)
     (base / "output").mkdir(parents=True)
-    
+    logger.info(
+        f"directories to save the files used in the ocr created at: {str(base / 'input'), str(base / 'output')}"
+    )
     return str(base / "input"), str(base / "output")
 
-def dispatcher(file: Path, dispatch_dir: Path, ext: str = "jpeg") -> tuple[list[Path], str]:
+
+def dispatcher(
+    file: Path, dispatch_dir: Path, ext: str = "jpeg"
+) -> tuple[list[Path], str]:
     """
     If the file is a PDF -> converts to the select kind of image.
     If its a image, return the image path directly.

@@ -1,5 +1,7 @@
 from pathlib import Path
 import json
+import logging
+logger = logging.getLogger(__name__)
 
 def json_from_pdf(file_path: Path, output_path: Path, pages: list[dict] , ensure_ascii: bool = False):
     """
@@ -13,6 +15,7 @@ def json_from_pdf(file_path: Path, output_path: Path, pages: list[dict] , ensure
     out = Path(output_path) / f"{Path(file_path).stem}.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(template, f, indent=4, ensure_ascii=ensure_ascii)
+    logger.info(f"JSON log file was created for pdf {filename} at {out}.")
 
 
 def json_from_image(file_path: Path, output_path: Path, text: str, mean_confidence: float, low_confidence_words: list, ensure_ascii: bool = False):
@@ -38,3 +41,5 @@ def json_from_image(file_path: Path, output_path: Path, text: str, mean_confiden
     
     with open(out, "w", encoding="utf-8") as f:
         json.dump(template, f, indent=4, ensure_ascii=ensure_ascii)
+    logger.info(f"JSON log file was created for image {filename} at {out}.")
+

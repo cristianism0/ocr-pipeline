@@ -1,0 +1,166 @@
+import argparse
+import logging
+import multiprocessing
+from pathlib import Path
+
+from src.output import json_from_image, json_from_pdf
+from src.pipe import mean_conf, page_conf_text, page_text
+from src.utils import dispatcher, path_collector
+
+
+def get_args():
+    parser = argparse.ArgumentParser(
+        prog="OCR Pipeline",
+        description="""Pipeline using OCR with Pytesseract to collect text from files.\n
+        Supported types: .pdf, .txt, .tiff, .jpeg, .png""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-d",
+        "--directory",
+        required=True,
+        help="The directory with the files to be read.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="data/output",
+        help="The directory where the OCR files will be saved.",
+    )
+    parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        default=False,
+        help="Search all files inside all directories on the directory passed.",
+    )
+    parser.add_argument(
+        "-ascii",
+        "--ensure-ascii",
+        action="store_true",
+        default=False,
+        help="Generate a JSON file with ASCII compatibility.",
+    )
+    parser.add_argument(
+        "--ext",
+        default="jpeg",
+        help="All .pdf file will be converted to pages with this extension.",
+    )
+    parser.add_argument(
+        "--dispatch",
+        default="data/dispatch",
+        help="All .pdf converted pages will be send to this selected directory. Will be created if does not exists.",
+    )
+    parser.add_argument(
+        "-p",
+        "--precision",
+        type=float,
+        default=60.0,
+        help="Minimum confidence for words.",
+    )
+    parser.add_argument(
+        "-w",
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of cores for multiprocessing.",
+    )
+    return parser.parse_args()
+
+
+def log_setup(output_path: Path):
+    fmt = logging.Formatter(
+        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(fmt)
+    file_handler = logging.FileHandler(output_path / "pipeline.log", encoding="utf-8")
+    file_handler.setFormatter(fmt)
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.addHandler(stream_handler)
+    root.addHandler(file_handler)
+
+
+def main():
+    args = get_args()
+    input_path = Path(args.directory)
+    output_path = Path(args.output)
+    dispatch_path = Path(args.dispatch)
+    dispatch_path.mkdir(parents=True, exist_ok=True)
+
+    log_setup(output_path)
+    logger = logging.getLogger(__name__)
+
+    # program start
+    logger.info("program started")
+    data_paths = path_collector(input_path=input_path, recursive=args.recursive)
+    logger.info(f"{len(data_paths)} files were collected.")
+
+    for f in data_paths:
+        logger.info(f"processing file {f.name}.")
+        try:
+            img_p, suffix = dispatcher(file=f, dispatch_dir=dispatch_path, ext=args.ext)
+            if suffix == ".pdf":
+                pdf_content = []
+                for i, page in enumerate(img_p):
+                    conf, low_words = page_conf_text(
+                        file_path=page, min_word_conf=args.precision
+                    )
+                    conf_values = [item["confidence"] for item in conf]
+                    mean = mean_conf(conf_values)
+                    text = page_text(page)
+
+                    pdf_content.append(
+                        {
+                            "page": i,
+                            "text": text,
+                            "mean_page": mean,
+                            "low_words": low_words,
+                        }
+                    )
+                    if mean <= args.precision:
+                        logger.warning(
+                            f"file {f.name}: page {i} with mean confidence lower than {args.precision}"
+                        )
+
+                json_from_pdf(
+                    file_path=f,
+                    output_path=output_path,
+                    pages=pdf_content,
+                    ensure_ascii=args.ensure_ascii,
+                )
+                logger.info(
+                    f"file {f.name} was processed with {len(pdf_content)} pages."
+                )
+
+            else:
+                conf, low_words = page_conf_text(
+                    file_path=f, min_word_conf=args.precision
+                )
+                conf_values = [item["confidence"] for item in conf]
+                mean = mean_conf(conf_values)
+                text = page_text(f)
+                if mean <= args.precision:
+                    logger.warning(
+                        f"{f.name}: with mean confidence lower than {args.precision}"
+                    )
+
+                json_from_image(
+                    file_path=f,
+                    output_path=output_path,
+                    text=text,
+                    mean_confidence=mean,
+                    low_confidence_words=low_words,
+                    ensure_ascii=args.ensure_ascii,
+                )
+                logger.info(f"file {f.name} was processed.")
+        except Exception as e:
+            logger.error(f"Cannot process the file {f.name} due to {e}.")
+            continue
+
+    logger.info("pipeline finished.")
+
+if __name__ == "__main__":
+    main()
