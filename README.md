@@ -189,26 +189,17 @@ The confidence threshold for flagging low-confidence words defaults to `60.0`
 but is exposed via CLI. Documents from different periods and digitization
 quality require different thresholds.
 
+
 ## Known limitations
 
-- **Manuscripts and HTR** — Tesseract was not trained for handwritten text
-  recognition. For HTR, see [Kraken](https://kraken.re) or
-  [Calamari](https://github.com/Calamari-OCR/calamari).
-- **Low DPI scans** — images below 200 DPI produce consistently low
-  confidence. Rescan at 300 DPI minimum for better results.
-- **18th and 19th century documents** — mean confidence below 60 is common
-  due to ink degradation and non-standard typefaces.
-- **Multi-column layouts** — Tesseract reads left-to-right across the full
-  page width, mixing columns. Layout analysis is not implemented.
-- **Native digital PDFs** — PDFs with a text layer do not need OCR. The
-  pipeline converts them to images anyway; confidence will be high but the
-  step is unnecessary.
-- **Sequential processing** — the current pipeline processes one file at a
-  time. Multiprocessing via `ProcessPoolExecutor` is the next step.
-
----
+- **Manuscripts and HTR** — Tesseract was not trained for handwritten text recognition. For HTR, see [Kraken](https://kraken.re) or [Calamari](https://github.com/Calamari-OCR/calamari).
+- **Low DPI scans** — images below 200 DPI produce consistently low confidence. Rescan at 300 DPI minimum for better results.
+- **18th and 19th century documents** — mean confidence below 60 is common due to ink degradation and non-standard typefaces.
+- **Multi-column layouts** — Tesseract reads left-to-right across the full page width, mixing columns. Layout analysis is not implemented.
+- **Native digital PDFs** — PDFs with a text layer do not need OCR. The pipeline converts them to images anyway; confidence will be high but the step is unnecessary.
 
 ## What's next
 
-- [ ] Multiprocessing with `ProcessPoolExecutor` and process-safe logging
+- [x] Multiprocessing with `ProcessPoolExecutor` and process-safe logging
   via `QueueHandler`
+- [ ] Containerization and Makefile integration.

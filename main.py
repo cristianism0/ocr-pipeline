@@ -1,6 +1,7 @@
 import argparse
 import logging
 import multiprocessing
+from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 
 from src.output import json_from_image, json_from_pdf
@@ -68,19 +69,78 @@ def get_args():
     return parser.parse_args()
 
 
-def log_setup(output_path: Path):
-    fmt = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(fmt)
-    file_handler = logging.FileHandler(output_path / "pipeline.log", encoding="utf-8")
-    file_handler.setFormatter(fmt)
+def multi_init(log_queue: Queue):
+    """
+    Initilize the logging queue. All files logs will be send to this place.
+    """
+    queue_handler = QueueHandler(log_queue)
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-    root.addHandler(stream_handler)
-    root.addHandler(file_handler)
+    root.addHandler(queue_handler)
+
+
+def process_file(fargs: list):
+    """
+    Pipeline function, all arguments are received in the Pool:
+        - Log each action on each process
+        - Manage dispatch
+        - Create the JSON file with contents
+    """
+    f, dispatch_path, output_path, ext, precision, ensure_ascii = fargs
+    logger = logging.getLogger(__name__)
+    try:
+        logger.info(f"processing file {f.name}.")
+        img_p, suffix = dispatcher(file=f, dispatch_dir=dispatch_path, ext=ext)
+        if suffix == ".pdf":
+            pdf_content = []
+            for i, page in enumerate(img_p):
+                conf, low_words = page_conf_text(
+                    file_path=page, min_word_conf=precision
+                )
+                conf_values = [item["confidence"] for item in conf]
+                mean = mean_conf(conf_values)
+                text = page_text(page)
+
+                pdf_content.append(
+                    {
+                        "page": i,
+                        "text": text,
+                        "mean_page": mean,
+                        "low_words": low_words,
+                    }
+                )
+                if mean <= precision:
+                    logger.warning(
+                        f"file {f.name}: page {i} with mean confidence lower than {precision}"
+                    )
+
+            json_from_pdf(
+                file_path=f,
+                output_path=output_path,
+                pages=pdf_content,
+                ensure_ascii=ensure_ascii,
+            )
+            logger.info(f"file {f.name} was processed with {len(pdf_content)} pages.")
+
+        else:
+            conf, low_words = page_conf_text(file_path=f, min_word_conf=precision)
+            conf_values = [item["confidence"] for item in conf]
+            mean = mean_conf(conf_values)
+            text = page_text(f)
+            if mean <= precision:
+                logger.warning(f"{f.name}: with mean {mean:.2f} lower than {precision}")
+
+            json_from_image(
+                file_path=f,
+                output_path=output_path,
+                text=text,
+                mean_confidence=mean,
+                low_confidence_words=low_words,
+                ensure_ascii=ensure_ascii,
+            )
+            logger.info(f"file {f.name} was processed.")
+    except Exception as e:
+        logger.error(f"failed to process the file {f.name}: {e}.")
 
 
 def main():
@@ -90,77 +150,48 @@ def main():
     dispatch_path = Path(args.dispatch)
     dispatch_path.mkdir(parents=True, exist_ok=True)
 
-    log_setup(output_path)
+    fmt = logging.Formatter(
+        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(fmt)
+    file_handler = logging.FileHandler(output_path / "pipeline.log", encoding="utf-8")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(fmt)
+
+    log_queue = multiprocessing.Queue()
+    listener = QueueListener(
+        log_queue,
+        stream_handler,
+        file_handler,
+        respect_handler_level=True,
+    )
+    listener.start()
+
+    multi_init(log_queue)
     logger = logging.getLogger(__name__)
 
     # program start
     logger.info("program started")
     data_paths = path_collector(input_path=input_path, recursive=args.recursive)
-    logger.info(f"{len(data_paths)} files were collected.")
+    logger.info(f"{len(data_paths)} files found.")
 
-    for f in data_paths:
-        logger.info(f"processing file {f.name}.")
-        try:
-            img_p, suffix = dispatcher(file=f, dispatch_dir=dispatch_path, ext=args.ext)
-            if suffix == ".pdf":
-                pdf_content = []
-                for i, page in enumerate(img_p):
-                    conf, low_words = page_conf_text(
-                        file_path=page, min_word_conf=args.precision
-                    )
-                    conf_values = [item["confidence"] for item in conf]
-                    mean = mean_conf(conf_values)
-                    text = page_text(page)
+    p_args = [
+        (f, dispatch_path, output_path, args.ext, args.precision, args.ensure_ascii)
+        for f in data_paths
+    ]
 
-                    pdf_content.append(
-                        {
-                            "page": i,
-                            "text": text,
-                            "mean_page": mean,
-                            "low_words": low_words,
-                        }
-                    )
-                    if mean <= args.precision:
-                        logger.warning(
-                            f"file {f.name}: page {i} with mean confidence lower than {args.precision}"
-                        )
-
-                json_from_pdf(
-                    file_path=f,
-                    output_path=output_path,
-                    pages=pdf_content,
-                    ensure_ascii=args.ensure_ascii,
-                )
-                logger.info(
-                    f"file {f.name} was processed with {len(pdf_content)} pages."
-                )
-
-            else:
-                conf, low_words = page_conf_text(
-                    file_path=f, min_word_conf=args.precision
-                )
-                conf_values = [item["confidence"] for item in conf]
-                mean = mean_conf(conf_values)
-                text = page_text(f)
-                if mean <= args.precision:
-                    logger.warning(
-                        f"{f.name}: with mean confidence lower than {args.precision}"
-                    )
-
-                json_from_image(
-                    file_path=f,
-                    output_path=output_path,
-                    text=text,
-                    mean_confidence=mean,
-                    low_confidence_words=low_words,
-                    ensure_ascii=args.ensure_ascii,
-                )
-                logger.info(f"file {f.name} was processed.")
-        except Exception as e:
-            logger.error(f"Cannot process the file {f.name} due to {e}.")
-            continue
+    with multiprocessing.Pool(
+        processes=args.workers,
+        initializer=multi_init,
+        initargs=(log_queue,),
+    ) as pool:
+        pool.map(process_file, p_args)
 
     logger.info("pipeline finished.")
+    listener.stop()
 
 if __name__ == "__main__":
     main()
