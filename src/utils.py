@@ -46,30 +46,32 @@ def path_collector(input_path: Path, recursive: bool) -> list[Path]:
     if not in_path.exists():
         return []
 
-    pattern = "**/*" if recursive else "*"
-    logger.warning(
-        f"pattern glob select {"'**/*' (recursive)" if recursive else "'*' (non-recursive)"}"
-    )
-    return [f for f in in_path.glob(pattern) if f.is_file()]
+    if in_path.is_dir():
+        pattern = "**/*" if recursive else "*"
+        logger.warning(
+            f"pattern glob select {"'**/*' (recursive)" if recursive else "'*' (non-recursive)"}"
+        )
+        return [f for f in in_path.glob(pattern) if f.is_file()]
+    else:
+        return [in_path]
 
 
-def dir_creator(output_path: str) -> tuple[str, str]:
+def dir_creator(output_path: Path) -> Path:
     """
-    Create the ocr-pipe/input and ocr-pipe/output directories in path.
+    Create the ocr-pipe/output directory in path.
     """
-    o_path = Path(output_path)
-    parnt = o_path.parent
-    if o_path.exists():
+    parnt = output_path.parent
+    if output_path.exists():
         now = datetime.now()
         base = parnt / f"{now.strftime('%y-%m-%d-%H-%M-%S')}_ocr-pipe"
     else:
         base = parnt / "ocr-pipe"
-    (base / "input").mkdir(parents=True)
+
     (base / "output").mkdir(parents=True)
     logger.info(
-        f"directories to save the files used in the ocr created at: {str(base / 'input'), str(base / 'output')}"
+        f"directories to save the files used in the ocr created at: {str(base / 'output')}"
     )
-    return str(base / "input"), str(base / "output")
+    return base / "output"
 
 
 def dispatcher(

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from src.output import json_from_image, json_from_pdf
 from src.pipe import mean_conf, page_conf_text, page_text
-from src.utils import dispatcher, path_collector
+from src.utils import dir_creator, dispatcher, path_collector
 
 
 def get_args():
@@ -16,16 +16,21 @@ def get_args():
         Supported types: .pdf, .txt, .tiff, .jpeg, .png""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         "-d",
         "--directory",
-        required=True,
         help="The directory with the files to be read.",
+    )
+    group.add_argument(
+        "-f",
+        "--file",
+        help="One single file that will be read..",
     )
     parser.add_argument(
         "-o",
         "--output",
-        default="data/output",
+        default=None,
         help="The directory where the OCR files will be saved.",
     )
     parser.add_argument(
@@ -145,8 +150,9 @@ def process_file(fargs: list):
 
 def main():
     args = get_args()
-    input_path = Path(args.directory)
-    output_path = Path(args.output)
+    input_path = Path(args.directory if args.directory else args.file)
+    output_path = dir_creator(Path(args.output)) if Path(args.output) is None else Path(args.output)
+    output_path.mkdir(parents=True, exist_ok=True)
     dispatch_path = Path(args.dispatch)
     dispatch_path.mkdir(parents=True, exist_ok=True)
 
@@ -192,6 +198,7 @@ def main():
 
     logger.info("pipeline finished.")
     listener.stop()
+
 
 if __name__ == "__main__":
     main()
