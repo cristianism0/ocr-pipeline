@@ -60,18 +60,15 @@ def dir_creator(output_path: Path) -> Path:
     """
     Create the ocr-pipe/output directory in path.
     """
-    parnt = output_path.parent
+    now = datetime.now()
     if output_path.exists():
-        now = datetime.now()
-        base = parnt / f"{now.strftime('%y-%m-%d-%H-%M-%S')}_ocr-pipe"
+        base = output_path / f"{now.strftime('%y-%m-%d-%H-%M-%S')}_ocr-pipe"
     else:
-        base = parnt / "ocr-pipe"
-
-    (base / "output").mkdir(parents=True)
-    logger.info(
-        f"directories to save the files used in the ocr created at: {str(base / 'output')}"
-    )
-    return base / "output"
+        base = output_path / "ocr-pipe"
+    out = base / "output"
+    out.mkdir(parents=True)
+    logger.info(f"output directory created at: {out}")
+    return out
 
 
 def dispatcher(

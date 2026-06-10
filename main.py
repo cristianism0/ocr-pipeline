@@ -151,7 +151,7 @@ def process_file(fargs: list):
 def main():
     args = get_args()
     input_path = Path(args.directory if args.directory else args.file)
-    output_path = dir_creator(Path(args.output)) if Path(args.output) is None else Path(args.output)
+    output_path = dir_creator(Path(".")) if args.output is None else dir_creator(Path(args.output))
     output_path.mkdir(parents=True, exist_ok=True)
     dispatch_path = Path(args.dispatch)
     dispatch_path.mkdir(parents=True, exist_ok=True)
