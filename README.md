@@ -27,11 +27,9 @@ directory -> path_collector -> dispatcher                                JSON
 ```
 
 1. **path_collector** — walks the input directory (recursively or not).
-2. **dispatcher** — routes each file: PDF goes through `pdf2img`, images go
-   directly to OCR.
+2. **dispatcher** — routes each file: PDF goes through `pdf2img`, images go directly to OCR.
 3. **pdf2img** — converts each PDF page to an image via `pymupdf`.
-4. **tesseract** — runs OCR via `pytesseract`, returning text and per-word
-   confidence.
+4. **tesseract** — runs OCR via `pytesseract`, returning text and per-word confidence.
 5. **output** — structures results and writes JSON to the output directory.
 
 ## JSON output structure
@@ -67,7 +65,7 @@ directory -> path_collector -> dispatcher                                JSON
 
 - Python 3.14+
 - [uv](https://docs.astral.sh/uv/) (*optional*)
-- Tesseract — install via package manager:
+- Tesseract — install via package manager
 
 ```bash
 # Debian/Ubuntu
@@ -90,23 +88,31 @@ cd ocr-pipeline
 uv sync
 
 # for python
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Usage
 Using `uv`: 
 ```bash
-uv run main.py -d <input_directory> [options]
+uv run main.py -i <input> [options]
 ```
 
 Using `python`:
 ```bash
-python main.py -d <input_directory> [options]
+python main.py -i <input> [options]
 ```
 
+Using `make + docker`:
+```bash
+make build
+make run INPUT=<input> [options]
+```
+
+
+Python CLI Arguments:
 | Argument | Description | Default |
 |---|---|---|
-| `-d`, `--directory` | Input directory (required) | — |
+| `-i`, `--input` | Input content  | `-` |
 | `-o`, `--output` | Output directory for JSON files | `data/output` |
 | `--dispatch` | Directory for PDF page images | `data/dispatch` |
 | `-r`, `--recursive` | Scan subdirectories recursively | `False` |
@@ -115,6 +121,17 @@ python main.py -d <input_directory> [options]
 | `-w`, `--workers` | Number of cores for multiprocessing | `4` |
 | `--ascii` | Write JSON with ASCII encoding | `False` |
 
+MAKE CLI Arguments:
+| Arguments | CLI Correspondent |
+|-----------|-------------------|
+|`INPUT`| `-i`, `--input`|
+|`OUTPUT`|`-o`, `--output`|
+|`DISPATCH`| `--dispatch` |
+|`RECURSIVE`|`-r`, `--recursive`|
+|`EXTENSION`|`--ext`|
+|`PRECISION`|`-p`, `--precision`|
+|`WORKERS`|`-w`, `--workers`|
+|`ASCII`|`--ascii` |
 
 Use `-h` or `--help` flag to help.
 
@@ -122,14 +139,17 @@ Use `-h` or `--help` flag to help.
 **Examples:**
 
 ```bash
-# single directory
-uv run main.py -d data/input
+# single file
+uv run main.py -i data/input/file.jpeg -w 1
 
 # recursive, custom output, png conversion
-uv run main.py -d documents/ -o results/ -r --ext png
+uv run main.py -i documents/ -o results/ -r --ext png --dispatch images
 
 # lower confidence threshold
 uv run main.py -d data/input -p 75.0
+
+# make run
+make build && make run INPUT=article.pdf DISPATCH=images WORKERS=2
 ```
 
 ## Project structure
@@ -153,6 +173,8 @@ uv run main.py -d data/input -p 75.0
 ├── pyproject.toml
 ├── .python-version
 ├── requirements.txt  # for python setup
+├── Dockerfile 
+├── Makefile   # using make for better approach on docker
 └── uv.lock
 ```
 
@@ -171,23 +193,19 @@ Current coverage: **100%** across all modules.
 ## Architecture decisions
 
 **Procedural over object-oriented**
-The pipeline is a linear data transformation — each step receives input and
-returns output with no shared state.
+The pipeline is a linear data transformation — each step receives input and returns output with no shared state.
 
 **One JSON per document, not per page**
-PDFs are aggregated into a single JSON file with a `pages` array. Processing
-pages as individual files would scatter the output and make downstream
-consumption harder.
+PDFs are aggregated into a single JSON file with a `pages` array. Processing pages as individual files would scatter the output and make downstream consumption harder.
 
 **Separate dispatch directory**
-PDF-converted images are written to `data/dispatch/`, not to the input
-directory. This prevents `path_collector` from picking up intermediate files
-on the next run.
+PDF-converted images are written to `data/dispatch/`, not to the input directory. This prevents `path_collector` from picking up intermediate files on the next run.
 
 **`--precision` as a CLI argument**
-The confidence threshold for flagging low-confidence words defaults to `60.0`
-but is exposed via CLI. Documents from different periods and digitization
-quality require different thresholds.
+
+The confidence threshold for flagging low-confidence words defaults to `60.0` but is exposed via CLI. Documents from different periods and digitization quality require different thresholds.
+
+**Containerization and Make** Using a container to avoid the need to install any dependence for the pipe (unless docker). This avoid even the need to install *tesseract*.
 
 
 ## Known limitations
@@ -200,6 +218,6 @@ quality require different thresholds.
 
 ## What's next
 
-- [x] Multiprocessing with `ProcessPoolExecutor` and process-safe logging
-  via `QueueHandler`
-- [ ] Containerization and Makefile integration.
+- [x] Multiprocessing with `Pool` and process-safe logging via `QueueHandler`
+- [x] Containerization and Makefile integration.
+- [ ] API using FastAPI

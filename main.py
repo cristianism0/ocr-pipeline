@@ -16,16 +16,11 @@ def get_args():
         Supported types: .pdf, .txt, .tiff, .jpeg, .png""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "-d",
-        "--directory",
-        help="The directory with the files to be read.",
-    )
-    group.add_argument(
-        "-f",
-        "--file",
-        help="One single file that will be read..",
+    # group = parser.add_mutually_exclusive_group(required=True)
+    parser.add_argument(
+        "-i",
+        "--input",
+        help="The directory of file that will be read.",
     )
     parser.add_argument(
         "-o",
@@ -150,7 +145,8 @@ def process_file(fargs: list):
 
 def main():
     args = get_args()
-    input_path = Path(args.directory if args.directory else args.file)
+    print(args)
+    input_path = Path(args.input)
     output_path = dir_creator(Path(".")) if args.output is None else dir_creator(Path(args.output))
     output_path.mkdir(parents=True, exist_ok=True)
     dispatch_path = Path(args.dispatch)

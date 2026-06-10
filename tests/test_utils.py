@@ -91,20 +91,20 @@ def test_path_collector_single_file(tmp_path):
 
 
 def test_dir_creator_creates_output_dir(tmp_path):
-    output = dir_creator(tmp_path / "ocr-pipe")
+    output = dir_creator(tmp_path / "output")
     assert output.exists()
     assert output.name == "output"
 
 
 def test_dir_creator_returns_path(tmp_path):
-    output = dir_creator(tmp_path / "ocr-pipe")
+    output = dir_creator(tmp_path / "output")
     assert isinstance(output, Path)
 
 
 def test_dir_creator_timestamp_on_existing(tmp_path):
-    dir_creator(tmp_path / "ocr-pipe")
-    second = dir_creator(tmp_path / "ocr-pipe")
-    assert "_ocr-pipe" in second.parent.name
+    dir_creator(tmp_path / "output")
+    second = dir_creator(tmp_path / "output")
+    assert "output_" in second.name
 
 
 def test_dispatcher_pdf_branch(tmp_path):

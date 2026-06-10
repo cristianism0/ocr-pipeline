@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+from numpy import outer
 import pymupdf
 
 logger = logging.getLogger(__name__)
@@ -61,11 +62,12 @@ def dir_creator(output_path: Path) -> Path:
     Create the ocr-pipe/output directory in path.
     """
     now = datetime.now()
-    if output_path.exists():
-        base = output_path / f"{now.strftime('%y-%m-%d-%H-%M-%S')}_ocr-pipe"
-    else:
-        base = output_path / "ocr-pipe"
-    out = base / "output"
+    out= output_path / "output"
+    
+    if output_path.exists() and out.exists():
+        out= output_path / f"output_{now.strftime('%y-%m-%d-%S')}"
+
+    # out = base / "output"
     out.mkdir(parents=True)
     logger.info(f"output directory created at: {out}")
     return out
