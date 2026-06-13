@@ -13,5 +13,6 @@ wheels/
 # Virtual environments
 .venv
 
-# Data
+# Local
 data
+.env
