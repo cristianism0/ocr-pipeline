@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def json_from_pdf(
     file_path: Path, output_path: Path, pages: list[dict], ensure_ascii: bool = False
-):
+) -> Path:
     """
     pages: list of dicts with page, text, mean_confidence, low_confidence_words
     """
@@ -18,6 +18,8 @@ def json_from_pdf(
         json.dump(template, f, indent=4, ensure_ascii=ensure_ascii)
     logger.info(f"JSON log file was created for pdf {filename} at {out}.")
 
+    return out
+
 
 def json_from_image(
     file_path: Path,
@@ -26,7 +28,7 @@ def json_from_image(
     mean_confidence: float,
     low_confidence_words: list,
     ensure_ascii: bool = False,
-):
+) -> Path:
     """
     image: returns a JSON file in path with:
         - filename
@@ -50,3 +52,4 @@ def json_from_image(
     with open(out, "w", encoding="utf-8") as f:
         json.dump(template, f, indent=4, ensure_ascii=ensure_ascii)
     logger.info(f"JSON log file was created for image {filename} at {out}.")
+    return out
