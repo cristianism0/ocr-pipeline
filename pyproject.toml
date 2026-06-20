@@ -5,12 +5,19 @@ description = "OCR pipeline to read images using pytesseract."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi[standard]>=0.136.3",
     "opencv-python>=4.13.0.92",
     "pillow>=12.2.0",
     "pymupdf>=1.27.2.3",
     "pytesseract>=0.3.13",
+]
+
+[dependencies-groups]
+api = [
+    "fastapi[standard]>=0.136.3",
+    "python-multipart>=0.0.32",
+]
+dev = [
+    {include-group='api'},
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
-    "python-multipart>=0.0.32",
 ]

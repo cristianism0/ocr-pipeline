@@ -88,8 +88,14 @@ cd ocr-pipeline
 uv sync
 
 # for python
-pip install -r requirements.txt
+pip install -r requirements/base.txt
 ```
+
+### Requirements
+There is 3 groups of requirements inside `requirements` directory and `pyproject.toml`. Each group inside `pyproject.toml` will install base dependencies. For CLI usage, you just need to sync or, for python, install `requirements/base.txt`. 
+
+The `dev.txt` and `dev` group will have all dependencies inside this project.
+
 
 ## Usage
 Using `uv`: 
@@ -121,6 +127,8 @@ Python CLI Arguments:
 | `-w`, `--workers` | Number of cores for multiprocessing | `4` |
 | `--ascii` | Write JSON with ASCII encoding | `False` |
 
+Use `-h` or `--help` flag to help.
+
 MAKE CLI Arguments:
 | Arguments | CLI Correspondent |
 |-----------|-------------------|
@@ -133,8 +141,7 @@ MAKE CLI Arguments:
 |`WORKERS`|`-w`, `--workers`|
 |`ASCII`|`--ascii` |
 
-Use `-h` or `--help` flag to help.
-
+Use `make help` or `make` to help.
 
 **Examples:**
 
@@ -172,7 +179,7 @@ make build && make run INPUT=article.pdf DISPATCH=images WORKERS=2
 ├── main.py
 ├── pyproject.toml
 ├── .python-version
-├── requirements.txt  # for python setup
+├── requirements/  # for python setup
 ├── Dockerfile 
 ├── Makefile   # using make for better approach on docker
 └── uv.lock
@@ -188,7 +195,7 @@ uv run pytest tests/ -v
 uv run pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-Current coverage: **100%** across all modules.
+Current coverage: **99%** across all modules.
 
 ## Architecture decisions
 
@@ -220,4 +227,5 @@ The confidence threshold for flagging low-confidence words defaults to `60.0` bu
 
 - [x] Multiprocessing with `Pool` and process-safe logging via `QueueHandler`
 - [x] Containerization and Makefile integration.
-- [ ] API using FastAPI
+- [x] API using FastAPI
+- [ ] DB integration using SQLite (or Postgres), MIME validation and path clean for API.
