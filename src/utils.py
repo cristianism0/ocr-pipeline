@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from numpy import outer
 import pymupdf
 
 logger = logging.getLogger(__name__)
