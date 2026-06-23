@@ -15,11 +15,13 @@ def create_job(id: str) -> None:
     _jobs[id] = {"status": State.PENDING, "result": None, "error": None}
 
 
-def update_job(id: str, status: State, result=None, error=None) -> None:
+def update_job(
+    id: str, status: State, result: str | None = None, error: str | None = None
+) -> None:
     _jobs[id]["status"] = status
     _jobs[id]["result"] = result
     _jobs[id]["error"] = error
 
 
-def get_job(id: str) -> dict | None:
+def get_job(id: str) -> dict[str, str] | None:
     return _jobs.get(id)

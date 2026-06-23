@@ -2,6 +2,7 @@ import csv
 import io
 import logging
 from pathlib import Path
+from typing import TypedDict
 
 import numpy as np
 import pytesseract
@@ -12,9 +13,14 @@ logger = logging.getLogger(__name__)
 pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"
 
 
+class WordConf(TypedDict):
+    confidence: float
+    text: str
+
+
 def page_conf_text(
     file_path: Path, min_word_conf: float = 60.00
-) -> tuple[list[dict[float, str]], list[dict[float, str]]]:
+) -> tuple[list[WordConf], list[WordConf]]:
     """
     Collect the text and word's confidence and return.
     """
@@ -22,8 +28,8 @@ def page_conf_text(
     data = pytesseract.image_to_data(Image.open(file_path))
     reader = csv.DictReader(io.StringIO(data.replace("\t", ",").strip()))
 
-    ret = []
-    word_conf = []
+    ret: list[WordConf] = []
+    word_conf: list[WordConf] = []
     for line in reader:
         confidence = line.get("conf")
         text = line.get("text")
@@ -41,11 +47,13 @@ def page_text(file_path: Path):
     """
     Get the text from a image using Tesseract.
     """
-    data = pytesseract.image_to_string(Image.open(file_path))
+    data: str | bytes | dict[str, str | bytes] = pytesseract.image_to_string(
+        Image.open(file_path)
+    )
     return data
 
 
-def mean_conf(values: list):
+def mean_conf(values: list[float]) -> float | np.floating:
     """
     Calculate the mean value using Numpy.mean() method.
     """

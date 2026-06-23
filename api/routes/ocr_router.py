@@ -1,5 +1,6 @@
 import uuid
 import json
+import magic
 from pathlib import Path
 from typing import Annotated
 
@@ -15,14 +16,43 @@ OUTPUT_DIR = Path("data/output")
 INPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+ALLOWED_TYPES = [
+    "application/pdf",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/tiff",
+    "image/tif",
+    "image.gif",
+    "image/webp",
+    "image/jp2",
+    "image/pnm",
+    "image/pbm",
+    "image/ppm",
+    "image/pnm",
+]
+
 
 @router.post("/send")
 async def send_input(
     files: Annotated[list[UploadFile], File()],
     background_tasks: BackgroundTasks,
-):
-    jobs = []
+) -> list[dict[str, str | None]]:
+
+    jobs: list[dict[str, str | None]] = []
+
     for f in files:
+        header = await f.read(2048)
+
+        _ = await f.seek(0)
+
+        magic_val = magic.from_buffer(header, mime=True)
+        if f.content_type and magic_val not in ALLOWED_TYPES:
+            raise HTTPException(
+                status_code=415,
+                detail=f"File {f.filename} type not allowed. Allowed: {', '.join(ALLOWED_TYPES)}",
+            )
+
         job_id = str(uuid.uuid4())
         file_path = INPUT_DIR / f"{job_id}_{f.filename}"
 
@@ -43,7 +73,7 @@ def job_status(id: str):
 
 
 @router.get("/jobs/{id}/result")
-def get_result(id: str):
+def get_result(id: str) -> dict[str, str]:
     job = get_job(id)
     if not job:
         raise HTTPException(status_code=404, detail=f"job not found with ID: {id}")

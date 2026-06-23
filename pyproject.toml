@@ -15,7 +15,10 @@ dependencies = [
 api = [
     "fastapi[standard]>=0.136.3",
     "python-multipart>=0.0.32",
+    "python-magic>=0.4.27",
+
 ]
+
 dev = [
     {include-group='api'},
     "pytest>=9.0.3",
