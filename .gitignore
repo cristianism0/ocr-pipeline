@@ -15,4 +15,6 @@ wheels/
 
 # Local
 data
+api/data
 .env
+*.db
