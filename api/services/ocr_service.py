@@ -1,17 +1,20 @@
 import asyncio
+import json
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-
-from api.controllers.ocr_controller import State, update_job
+from api.database.models import State
+from api.database.repository import DBRepoTemplate
 from src.output import json_from_image, json_from_pdf
 from src.pipe import mean_conf, page_conf_text, page_text
 from src.utils import dispatcher
 
-DISPATCH_PATH = Path("data/dispatch")
+DISPATCH_PATH = Path("api/data/dispatch")
 DISPATCH_PATH.mkdir(parents=True, exist_ok=True)
 
+executor = ProcessPoolExecutor()
 
-def _run_pipeline(job_id: str, file_path: Path, output_path: Path) -> Path:
+
+def _run_pipeline(job_id: str, file_path: Path, output_path: Path) -> dict:
     img_p, suffix = dispatcher(file=file_path, dispatch_dir=DISPATCH_PATH)
     if suffix == ".pdf":
         pdf_content = []
@@ -20,7 +23,6 @@ def _run_pipeline(job_id: str, file_path: Path, output_path: Path) -> Path:
             conf_values = [item["confidence"] for item in conf]
             mean = mean_conf(conf_values)
             text = page_text(page)
-
             pdf_content.append(
                 {
                     "page": i,
@@ -46,25 +48,20 @@ def _run_pipeline(job_id: str, file_path: Path, output_path: Path) -> Path:
             mean_confidence=mean,
             low_confidence_words=low_words,
         )
-
-    return json_p
-
-
-executor = ProcessPoolExecutor()
+    return json.loads(json_p.read_text())
 
 
-async def run_job(job_id: str, file_path: Path, output_path: Path):
-    update_job(job_id, State.RUNNING)
-
-    # the pipe is pure CPU-bound
-    # asyncio for multiple HTTP requests and concurrency for keep async and multiprocessing
-
+async def run_job(
+    job_id: str, file_path: Path, output_path: Path, repo: DBRepoTemplate
+):
+    repo.update_job(job_id, State.RUNNING)
     loop = asyncio.get_event_loop()
-
     try:
         result = await loop.run_in_executor(
             executor, _run_pipeline, job_id, file_path, output_path
         )
-        update_job(job_id, State.DONE, result=result)
+        repo.update_job(job_id, State.DONE, result=result)
     except Exception as e:
-        update_job(job_id, State.ERROR, error=str(e))
+        repo.update_job(job_id, State.ERROR, error=str(e))
+    finally:
+        repo.close()

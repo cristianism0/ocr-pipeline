@@ -1,12 +1,22 @@
 import argparse
 import logging
-import multiprocessing
+from multiprocessing import Queue, Pool
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 
 from src.output import json_from_image, json_from_pdf
-from src.pipe import mean_conf, page_conf_text, page_text
+from src.pipe import mean_conf, page_conf_text, page_text, WordConf
 from src.utils import dir_creator, dispatcher, path_collector
+
+from typing import TypedDict
+from numpy import floating
+
+
+class PdfContent(TypedDict):
+    page: int
+    text: bytes | str | dict[str, str | bytes]
+    mean_page: float | floating
+    low_words: list[WordConf]
 
 
 def get_args():
@@ -17,49 +27,49 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     # group = parser.add_mutually_exclusive_group(required=True)
-    parser.add_argument(
+    _ = parser.add_argument(
         "-i",
         "--input",
         help="The directory of file that will be read.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-o",
         "--output",
         default=None,
         help="The directory where the OCR files will be saved.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-r",
         "--recursive",
         action="store_true",
         default=False,
         help="Search all files inside all directories on the directory passed.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-ascii",
         "--ensure-ascii",
         action="store_true",
         default=False,
         help="Generate a JSON file with ASCII compatibility.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--ext",
         default="jpeg",
         help="All .pdf file will be converted to pages with this extension.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--dispatch",
         default="data/dispatch",
         help="All .pdf converted pages will be send to this selected directory. Will be created if does not exists.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-p",
         "--precision",
         type=float,
         default=60.0,
         help="Minimum confidence for words.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-w",
         "--workers",
         type=int,
@@ -79,7 +89,7 @@ def multi_init(log_queue: Queue):
     root.addHandler(queue_handler)
 
 
-def process_file(fargs: list):
+def process_file(fargs: tuple[Path, Path, Path, str, float, bool]):
     """
     Pipeline function, all arguments are received in the Pool:
         - Log each action on each process
@@ -92,7 +102,7 @@ def process_file(fargs: list):
         logger.info(f"processing file {f.name}.")
         img_p, suffix = dispatcher(file=f, dispatch_dir=dispatch_path, ext=ext)
         if suffix == ".pdf":
-            pdf_content = []
+            pdf_content: list[PdfContent] = []
             for i, page in enumerate(img_p):
                 conf, low_words = page_conf_text(
                     file_path=page, min_word_conf=precision
@@ -114,7 +124,7 @@ def process_file(fargs: list):
                         f"file {f.name}: page {i} with mean confidence lower than {precision}"
                     )
 
-            json_from_pdf(
+            _ = json_from_pdf(
                 file_path=f,
                 output_path=output_path,
                 pages=pdf_content,
@@ -147,7 +157,11 @@ def main():
     args = get_args()
     print(args)
     input_path = Path(args.input)
-    output_path = dir_creator(Path(".")) if args.output is None else dir_creator(Path(args.output))
+    output_path = (
+        dir_creator(Path("."))
+        if args.output is None
+        else dir_creator(Path(args.output))
+    )
     output_path.mkdir(parents=True, exist_ok=True)
     dispatch_path = Path(args.dispatch)
     dispatch_path.mkdir(parents=True, exist_ok=True)
@@ -163,7 +177,7 @@ def main():
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(fmt)
 
-    log_queue = multiprocessing.Queue()
+    log_queue = Queue()
     listener = QueueListener(
         log_queue,
         stream_handler,
@@ -185,12 +199,12 @@ def main():
         for f in data_paths
     ]
 
-    with multiprocessing.Pool(
+    with Pool(
         processes=args.workers,
         initializer=multi_init,
         initargs=(log_queue,),
     ) as pool:
-        pool.map(process_file, p_args)
+        _ = pool.map(process_file, p_args)
 
     logger.info("pipeline finished.")
     listener.stop()

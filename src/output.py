@@ -1,4 +1,5 @@
 import json
+from numpy import floating
 import logging
 from pathlib import Path
 
@@ -6,7 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 def json_from_pdf(
-    file_path: Path, output_path: Path, pages: list[dict], ensure_ascii: bool = False
+    file_path: Path,
+    output_path: Path,
+    pages: list[dict[str, str]],
+    ensure_ascii: bool = False,
 ) -> Path:
     """
     pages: list of dicts with page, text, mean_confidence, low_confidence_words
@@ -25,8 +29,8 @@ def json_from_image(
     file_path: Path,
     output_path: Path,
     text: str,
-    mean_confidence: float,
-    low_confidence_words: list,
+    mean_confidence: float | floating,
+    low_confidence_words: list[dict[str, float]],
     ensure_ascii: bool = False,
 ) -> Path:
     """
