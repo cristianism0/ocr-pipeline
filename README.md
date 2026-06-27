@@ -228,4 +228,6 @@ The confidence threshold for flagging low-confidence words defaults to `60.0` bu
 - [x] Multiprocessing with `Pool` and process-safe logging via `QueueHandler`
 - [x] Containerization and Makefile integration.
 - [x] API using FastAPI
-- [ ] DB integration using SQLite (or Postgres), MIME validation and path clean for API.
+- [x] DB integration using or PostgresQL, MIME validation.
+- [ ] Docker Composer + MinIO to remove disk writing.
+- [ ] New engines.
