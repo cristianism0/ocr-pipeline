@@ -6,12 +6,15 @@ dist/
 wheels/
 *.egg-info
 
-# Pytest 
+# Pytest
 .coverage
 .pytest_cache
 
 # Virtual environments
 .venv
 
-# Data
+# Local
 data
+api/data
+.env
+*.db

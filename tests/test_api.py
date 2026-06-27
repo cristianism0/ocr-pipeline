@@ -1,4 +1,3 @@
-import api.database.models
 import io
 import uuid
 from unittest.mock import patch
@@ -11,8 +10,8 @@ from sqlalchemy.orm import sessionmaker
 
 from api.database.models import State
 from api.database.repository import DBJobRepository
-from api.main import app
 from api.database.session import Base, get_db
+from api.main import app
 
 TEST_DB_URL = "sqlite:///:memory:"
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
@@ -69,8 +68,8 @@ def post_send(client, *files):
 
 def test_send_single_file_returns_job(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         res = post_send(client, make_file())
     assert res.status_code == 200
@@ -82,8 +81,8 @@ def test_send_single_file_returns_job(client):
 
 def test_send_multiple_files_returns_multiple_jobs(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         res = post_send(client, make_file("a.png"), make_file("b.png"))
     assert res.status_code == 200
@@ -92,8 +91,8 @@ def test_send_multiple_files_returns_multiple_jobs(client):
 
 def test_send_creates_job_with_pending_status(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         res = post_send(client, make_file())
     job_id = res.json()[0]["job_id"]
@@ -102,7 +101,9 @@ def test_send_creates_job_with_pending_status(client):
 
 
 def test_send_disallowed_type_returns_415(client):
-    with patch("api.routes.ocr_router.magic.from_buffer", return_value="text/plain"):
+    with patch(
+        "api.routes.witchtr_router.magic.from_buffer", return_value="text/plain"
+    ):
         res = post_send(client, make_file("evil.txt", b"not an image", "text/plain"))
     assert res.status_code == 415
 
@@ -111,9 +112,10 @@ def test_send_pdf_allowed(client):
     pdf_bytes = b"%PDF-1.4 fake pdf content"
     with (
         patch(
-            "api.routes.ocr_router.magic.from_buffer", return_value="application/pdf"
+            "api.routes.witchtr_router.magic.from_buffer",
+            return_value="application/pdf",
         ),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         res = post_send(client, make_file("doc.pdf", pdf_bytes, "application/pdf"))
     assert res.status_code == 200
@@ -126,8 +128,8 @@ def test_send_no_files_returns_422(client):
 
 def test_send_job_ids_are_unique(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         res = post_send(client, make_file("a.png"), make_file("b.png"))
     ids = [j["job_id"] for j in res.json()]
@@ -136,8 +138,8 @@ def test_send_job_ids_are_unique(client):
 
 def test_send_job_id_is_valid_uuid(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         res = post_send(client, make_file())
     job_id = res.json()[0]["job_id"]
@@ -146,8 +148,8 @@ def test_send_job_id_is_valid_uuid(client):
 
 def test_job_status_pending(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     res = client.get(f"/jobs/{job_id}")
@@ -162,8 +164,8 @@ def test_job_status_not_found(client):
 
 def test_job_status_has_expected_keys(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     res = client.get(f"/jobs/{job_id}")
@@ -173,8 +175,8 @@ def test_job_status_has_expected_keys(client):
 
 def test_job_status_done_after_update(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     db = TestingSession()
@@ -186,8 +188,8 @@ def test_job_status_done_after_update(client):
 
 def test_job_status_error_after_update(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     db = TestingSession()
@@ -206,8 +208,8 @@ def test_get_result_not_found(client):
 
 def test_get_result_pending_returns_202(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     res = client.get(f"/jobs/{job_id}/result")
@@ -216,8 +218,8 @@ def test_get_result_pending_returns_202(client):
 
 def test_get_result_running_returns_202(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     db = TestingSession()
@@ -229,8 +231,8 @@ def test_get_result_running_returns_202(client):
 
 def test_get_result_done_returns_result(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     db = TestingSession()
@@ -245,8 +247,8 @@ def test_get_result_done_returns_result(client):
 
 def test_get_result_done_has_expected_keys(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     db = TestingSession()
@@ -259,8 +261,8 @@ def test_get_result_done_has_expected_keys(client):
 
 def test_get_result_error_state_returns_202(client):
     with (
-        patch("api.routes.ocr_router.magic.from_buffer", return_value="image/png"),
-        patch("api.routes.ocr_router.run_job"),
+        patch("api.routes.witchtr_router.magic.from_buffer", return_value="image/png"),
+        patch("api.routes.witchtr_router.run_job"),
     ):
         job_id = post_send(client, make_file()).json()[0]["job_id"]
     db = TestingSession()

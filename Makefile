@@ -1,4 +1,4 @@
-IMAGE :=ocr-pipeline
+IMAGE :=witchtr
 TAG	  :=latest
 
 DISPATCH ?=data/dispatch

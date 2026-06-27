@@ -2,6 +2,7 @@ import asyncio
 import json
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+
 from api.database.models import State
 from api.database.repository import DBRepoTemplate
 from src.output import json_from_image, json_from_pdf
@@ -10,8 +11,6 @@ from src.utils import dispatcher
 
 DISPATCH_PATH = Path("api/data/dispatch")
 DISPATCH_PATH.mkdir(parents=True, exist_ok=True)
-
-executor = ProcessPoolExecutor()
 
 
 def _run_pipeline(job_id: str, file_path: Path, output_path: Path) -> dict:
@@ -52,7 +51,11 @@ def _run_pipeline(job_id: str, file_path: Path, output_path: Path) -> dict:
 
 
 async def run_job(
-    job_id: str, file_path: Path, output_path: Path, repo: DBRepoTemplate
+    job_id: str,
+    file_path: Path,
+    output_path: Path,
+    repo: DBRepoTemplate,
+    executor: ProcessPoolExecutor,
 ):
     repo.update_job(job_id, State.RUNNING)
     loop = asyncio.get_event_loop()

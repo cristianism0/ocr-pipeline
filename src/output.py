@@ -1,7 +1,8 @@
 import json
-from numpy import floating
 import logging
 from pathlib import Path
+
+from numpy import floating
 
 logger = logging.getLogger(__name__)
 

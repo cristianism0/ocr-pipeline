@@ -1,5 +1,7 @@
-from sqlalchemy.orm import Session
 from typing import Protocol
+
+from sqlalchemy.orm import Session
+
 from api.database.models import Job, State
 from api.database.session import DBSession
 
