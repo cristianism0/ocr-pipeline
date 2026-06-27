@@ -1,4 +1,4 @@
-# OCR Pipeline
+# WitcHTR - OCR Pipeline
 
 A pipeline that extracts text from PDFs and images using Tesseract OCR, returning structured JSON output with confidence metrics per word and page.
 
@@ -195,7 +195,7 @@ uv run pytest tests/ -v
 uv run pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-Current coverage: **99%** across all modules.
+Current coverage: **94%** across all modules.
 
 ## Architecture decisions
 

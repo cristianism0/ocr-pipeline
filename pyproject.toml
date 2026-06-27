@@ -1,7 +1,7 @@
 [project]
-name = "ocr-pipeline"
+name = "witchtr"
 version = "0.1.0"
-description = "OCR pipeline to read images using pytesseract."
+description = "WitcHTR is an OCR pipeline to read images using pytesseract."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -24,6 +24,7 @@ dev = [
     {include-group='api'},
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
+    "ruff>=0.15.20",
 ]
 
 

@@ -1,15 +1,15 @@
 import argparse
 import logging
-from multiprocessing import Queue, Pool
 from logging.handlers import QueueHandler, QueueListener
+from multiprocessing import Pool, Queue
 from pathlib import Path
+from typing import TypedDict
+
+from numpy import floating
 
 from src.output import json_from_image, json_from_pdf
-from src.pipe import mean_conf, page_conf_text, page_text, WordConf
+from src.pipe import WordConf, mean_conf, page_conf_text, page_text
 from src.utils import dir_creator, dispatcher, path_collector
-
-from typing import TypedDict
-from numpy import floating
 
 
 class PdfContent(TypedDict):
@@ -21,7 +21,7 @@ class PdfContent(TypedDict):
 
 def get_args():
     parser = argparse.ArgumentParser(
-        prog="OCR Pipeline",
+        prog="WitcHTR - OCR Pipeline",
         description="""Pipeline using OCR with Pytesseract to collect text from files.\n
         Supported types: .pdf, .txt, .tiff, .jpeg, .png""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -36,7 +36,7 @@ def get_args():
         "-o",
         "--output",
         default=None,
-        help="The directory where the OCR files will be saved.",
+        help="The directory where the files will be saved.",
     )
     _ = parser.add_argument(
         "-r",
